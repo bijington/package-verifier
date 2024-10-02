@@ -1,6 +1,7 @@
 ﻿using System.IO.Compression;
 using CommandLine;
 using Microsoft.Extensions.Logging;
+using PackageVerifier.Loggers;
 
 namespace PackageVerifier;
 
@@ -13,10 +14,7 @@ class Program
             {
                 var extractDirectory = Path.Join(Environment.CurrentDirectory, "abc");
                 
-                var loggers = new List<ILogger>
-                {
-                    new AzureDevOpsLogger()
-                };
+                var loggers = o.Loggers.Select(GetLogger).ToList();
                 
                 try
                 {
@@ -65,6 +63,15 @@ class Program
                 }
             });
     }
+
+    private static ILogger GetLogger(Logger logger) =>
+        logger switch
+        {
+            // Logger.Console => new ConsoleLogger(),
+            Logger.AzureDevOps => new AzureDevOpsLogger(),
+            //Logger.GitHubActions => new GitHubActionsLogger(),
+            _ => throw new ArgumentOutOfRangeException(nameof(logger), logger, null)
+        };
 
     private static LogLevel GetLogLevel(TargetFrameworkMonikerTreatmentRule rule) =>
         rule switch
