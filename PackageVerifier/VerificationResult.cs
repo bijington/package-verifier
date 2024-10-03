@@ -4,15 +4,15 @@ public class VerificationResult
 {
     public IReadOnlyList<string> MissingMonikers { get; }
     public IReadOnlyList<string> ExtraMonikers { get; }
-    public IReadOnlyList<string> ExpectedMonikers { get; }
+    public IReadOnlyList<string> DetectedMonikers { get; }
 
     public VerificationResult(
         IReadOnlyList<string> missingMonikers,
         IReadOnlyList<string> extraMonikers,
-        IReadOnlyList<string> expectedMonikers)
+        IReadOnlyList<string> detectedMonikers)
     {
         MissingMonikers = missingMonikers;
         ExtraMonikers = extraMonikers;
-        ExpectedMonikers = expectedMonikers;
+        DetectedMonikers = detectedMonikers;
     }
 }

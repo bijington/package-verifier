@@ -6,20 +6,20 @@ public class AggregatedLogger : ILogger
 {
     public AggregatedLogger(Options options)
     {
-        _loggers = options.Loggers.Select(GetLogger).ToList();
         _missingMonikerLevel = GetLogLevel(options.TreatMissingTargetsAs);
         _extraMonikerLevel = GetLogLevel(options.TreatExtraTargetsAs);
+        _loggers = options.Loggers.Select(logger => GetLogger(logger, _missingMonikerLevel, _extraMonikerLevel)).ToList();
     }
     
-    private readonly List<ILogger> _loggers;
+    private readonly List<IResultLogger> _loggers;
     private readonly LogLevel _missingMonikerLevel;
     private readonly LogLevel _extraMonikerLevel;
     
-    private static ILogger GetLogger(Logger logger) =>
+    private static IResultLogger GetLogger(Logger logger, LogLevel missingMonikerLevel, LogLevel extraMonikerLevel) =>
         logger switch
         {
             // Logger.Console => new ConsoleLogger(),
-            Logger.AzureDevOps => new AzureDevOpsLogger(),
+            Logger.AzureDevOps => new AzureDevOpsLogger(missingMonikerLevel, extraMonikerLevel),
             //Logger.GitHubActions => new GitHubActionsLogger(),
             _ => throw new ArgumentOutOfRangeException(nameof(logger), logger, null)
         };
@@ -50,19 +50,6 @@ public class AggregatedLogger : ILogger
 
     public void Log(VerificationResult verificationResult)
     {
-        foreach (var extraDirectory in verificationResult.ExtraMonikers)
-        {
-            _loggers.ForEach(logger => logger.Log(_extraMonikerLevel, "TFM '{extraDirectory}' was not expected", extraDirectory)); 
-        }
-
-        foreach (var missingDirectory in verificationResult.MissingMonikers)
-        {
-            _loggers.ForEach(logger => logger.Log(_missingMonikerLevel, "TFM '{missingDirectory}' is missing", missingDirectory)); 
-        }
-
-        foreach (var expectedDirectory in verificationResult.ExpectedMonikers)
-        {
-            _loggers.ForEach(logger => logger.LogInformation("Expected TFM '{expectedDirectory}' exists", expectedDirectory));
-        }
+        _loggers.ForEach(logger => logger.Log(verificationResult));
     }
 }

@@ -31,7 +31,7 @@ class Program
                     var result = new VerificationResult(
                         o.TargetFrameworkMonikers.Except(directories).ToList(),
                         directories.Except(o.TargetFrameworkMonikers).ToList(),
-                        o.TargetFrameworkMonikers.ToList());
+                        o.TargetFrameworkMonikers.Intersect(directories).ToList());
                     
                     logger.Log(result);
                 }
