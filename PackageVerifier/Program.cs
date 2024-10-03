@@ -13,72 +13,46 @@ class Program
             .WithParsed<Options>(o =>
             {
                 var extractDirectory = Path.Join(Environment.CurrentDirectory, "abc");
-                
-                var loggers = o.Loggers.Select(GetLogger).ToList();
+
+                var logger = new AggregatedLogger(o);
                 
                 try
                 {
-                    loggers.ForEach(logger => logger.LogInformation("Verifying package '{PackagePath}'", o.PackagePath));
-                    loggers.ForEach(logger => logger.LogInformation("Extracting package to directory '{extractDirectory}'", extractDirectory));
+                    logger.LogInformation("Verifying package '{PackagePath}'", o.PackagePath);
+                    logger.LogInformation("Extracting package to directory '{extractDirectory}'", extractDirectory);
 
                     ZipFile.ExtractToDirectory(o.PackagePath, extractDirectory);
 
-                    loggers.ForEach(logger => logger.LogInformation("Checking for TFMs: '{TargetFrameworkMonikers}'", string.Join(';', o.TargetFrameworkMonikers))); ;
+                    logger.LogInformation("Checking for TFMs: '{TargetFrameworkMonikers}'", string.Join(';', o.TargetFrameworkMonikers));
 
                     var libDirectory = Path.Join(extractDirectory, "lib");
                     var directories = new DirectoryInfo(libDirectory).GetDirectories().Select(x => x.Name).ToList();
 
-                    foreach (var extraDirectory in directories.Except(o.TargetFrameworkMonikers))
-                    {
-                        loggers.ForEach(logger => logger.Log(GetLogLevel(o.TreatExtraTargetsAs), "TFM '{extraDirectory}' was not expected", extraDirectory)); 
-                    }
-
-                    foreach (var missingDirectory in o.TargetFrameworkMonikers.Except(directories))
-                    {
-                        loggers.ForEach(logger => logger.Log(GetLogLevel(o.TreatMissingTargetsAs), "TFM '{missingDirectory}' is missing", missingDirectory)); 
-                    }
-
-                    foreach (var expectedDirectory in o.TargetFrameworkMonikers.Intersect(directories))
-                    {
-                        loggers.ForEach(logger => logger.LogInformation("Expected TFM '{expectedDirectory}' exists", expectedDirectory));
-                    }
+                    var result = new VerificationResult(
+                        o.TargetFrameworkMonikers.Except(directories).ToList(),
+                        directories.Except(o.TargetFrameworkMonikers).ToList(),
+                        o.TargetFrameworkMonikers.ToList());
+                    
+                    logger.Log(result);
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e);
+                    logger.LogError(e, "Failed to verify package.");
                     throw;
                 }
                 finally
                 {
                     try
                     {
-                        Console.WriteLine($@"Cleaning up '{extractDirectory}'");
+                        logger.LogInformation("Cleaning up '{extractDirectory}'", extractDirectory);
                         
                         Directory.Delete(extractDirectory, true);
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine(ex);
+                        logger.LogError(ex, "Failed to clean up '{extractDirectory}'", extractDirectory);
                     }
                 }
             });
     }
-
-    private static ILogger GetLogger(Logger logger) =>
-        logger switch
-        {
-            // Logger.Console => new ConsoleLogger(),
-            Logger.AzureDevOps => new AzureDevOpsLogger(),
-            //Logger.GitHubActions => new GitHubActionsLogger(),
-            _ => throw new ArgumentOutOfRangeException(nameof(logger), logger, null)
-        };
-
-    private static LogLevel GetLogLevel(TargetFrameworkMonikerTreatmentRule rule) =>
-        rule switch
-        {
-            TargetFrameworkMonikerTreatmentRule.Ignore => LogLevel.Information,
-            TargetFrameworkMonikerTreatmentRule.Warning => LogLevel.Warning,
-            TargetFrameworkMonikerTreatmentRule.Error => LogLevel.Error,
-            _ => throw new ArgumentOutOfRangeException(nameof(rule), rule, null)
-        };
 }

@@ -1,9 +1,7 @@
 using CommandLine;
-using Microsoft.Extensions.Logging;
 
 namespace PackageVerifier;
 
-[Verb("verify")]
 public class Options
 {
     public Options(

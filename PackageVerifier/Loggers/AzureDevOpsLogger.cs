@@ -8,11 +8,11 @@ public class AzureDevOpsLogger : ILogger
         logLevel switch
         {
             LogLevel.Trace => string.Empty,
-            LogLevel.Debug => "#[debug]",
+            LogLevel.Debug => "##[debug]",
             LogLevel.Information => string.Empty,
-            LogLevel.Warning => "#[warning]",
-            LogLevel.Error => "#[error]",
-            LogLevel.Critical => "#[error]",
+            LogLevel.Warning => "##[warning]",
+            LogLevel.Error => "##[error]",
+            LogLevel.Critical => "##[error]",
             LogLevel.None => string.Empty,
             _ => throw new ArgumentOutOfRangeException(nameof(logLevel), logLevel, null)
         };
@@ -30,5 +30,10 @@ public class AzureDevOpsLogger : ILogger
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull
     {
         return null;
+    }
+
+    public void Log(VerificationResult verificationResult)
+    {
+        
     }
 }
